@@ -1,0 +1,28 @@
+# Build artifacts
+*.o
+*.axf
+*.lnp
+*.lst
+*.elf
+*.hex
+*.bin
+
+# Temporary and user-specific files
+*.bak
+*.log
+*.tmp
+*.d
+
+# Keil-specific files
+*.uvguix.*
+*.uvoptx
+
+# Auto-generated directories
+src/Listings/
+src/Objects/
+
+# Debug configuration files
+*.ini
+
+# Auto-generated Keil files (optional)
+RTE/_Target_1/RTE_Components.h
