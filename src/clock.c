@@ -49,8 +49,26 @@ void PLL_init(void){
 
 	// Clear the bypass to utilse the PLL output
 	SYSCTL_RCC2_R &= ~0x00000800;
+}
 
-	//
+// An input of 1, would result in a 12.5ns delay
+void SysTick_wait(unsigned long delay){
+	// Set counts to wait
+	NVIC_ST_RELOAD_R = delay - 1; 
 
+	// Clear Current
+	NVIC_ST_CURRENT_R = 0; 
+
+	// Begin Count
+	while((NVIC_ST_CTRL_R&0x00010000)==0) {}
+}
+
+// Adjusting for input of milliseconds
+void delay_ms(unsigned long delay){
+	SysTick_wait(delay * 800000);
+}
+
+void delay_us(unsigned long delay){
+	SysTick_wait(delay * 80);
 }
 
