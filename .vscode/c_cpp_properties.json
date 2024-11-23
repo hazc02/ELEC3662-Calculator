@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/include",  // Your 'include' folder
+                "${workspaceFolder}/src",     // Add if needed for extra headers
+                "/usr/include",               // System includes (default)
+                "/usr/local/include"          // Additional system includes
+            ],
+            "defines": [
+                "__UVISION__"                 // Define for Keil uVision compatibility
+            ],
+            "compilerPath": "/usr/bin/gcc",    // Path to GCC compiler
+            "cStandard": "c11",               // Set to C11 standard
+            "cppStandard": "c++17",           // If using C++ files
+            "intelliSenseMode": "macos-clang-x64"
+        }
+    ],
+    "version": 4
+}
