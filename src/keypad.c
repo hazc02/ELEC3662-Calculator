@@ -35,7 +35,8 @@ char Keypad_GetKey(void) {
         for (row = 0; row < 4; row++) {
             if (!(row_data & (1 << row))) { // Active low due to pull-up resistors
 
-                delay_ms(20); // Debounce delay
+                 // Debounce delay
+                delay_ms(20);
 
                 // Confirm the key is still pressed
                 row_data = KEYPAD_ROW_PORT & KEYPAD_ROW_MASK;
@@ -43,7 +44,7 @@ char Keypad_GetKey(void) {
 
                     // Wait until the key is released
                     while (!(KEYPAD_ROW_PORT & (1 << row)));
-                    
+
                     // Return the corresponding character
                     return keymap[row][col];
                 }
