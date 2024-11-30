@@ -1,20 +1,18 @@
-// main.c
-
 #include "clock.h"
 #include "gpio.h"
 #include "lcd.h"
 
 int main(void) {
-    // Initialize system clock to 80 MHz
+    // Initialise system clock to 80 MHz
     PLL_init();
 
-    // Initialize SysTick timer
+    // Initialise SysTick timer
     SysTick_init();
 
-    // Initialize GPIO ports
+    // Initialise GPIO ports
     GPIO_Init();
 
-    // Initialize LCD
+    // Initialise LCD
     LCD_Init();
 
     // Clear LCD and display test message
@@ -22,8 +20,8 @@ int main(void) {
     LCD_String("Hello, World!");
 
     while (1) {
-        
     }
 
     return 0;
 }
+

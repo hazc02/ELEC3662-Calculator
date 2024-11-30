@@ -1,5 +1,3 @@
-// clock.h
-
 #ifndef CLOCK_H  
 #define CLOCK_H
 
@@ -13,11 +11,10 @@
 #define NVIC_ST_RELOAD_R       (*((volatile unsigned long *)0xE000E014))
 #define NVIC_ST_CURRENT_R      (*((volatile unsigned long *)0xE000E018))
 
-// Function Prototypes
 void SysTick_init(void);
 void PLL_init(void);
 void SysTick_wait(unsigned long delay);
 void delay_ms(unsigned long delay);
 void delay_us(unsigned long delay);
 
-#endif  // CLOCK_H
+#endif 

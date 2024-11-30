@@ -4,7 +4,7 @@
 // Function prototypes for LCD operations
 
 /**
- * @brief Initializes the LCD display.
+ * @brief Initialises the LCD display.
  *        Configures the display for 4-bit mode and sets default parameters.
  */
 void LCD_Init(void);

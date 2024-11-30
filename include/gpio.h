@@ -1,5 +1,3 @@
-// gpio.h
-
 #ifndef GPIO_H
 #define GPIO_H
 
@@ -31,7 +29,6 @@
 #define GPIO_PORTB_AMSEL_R      (*((volatile unsigned long *)0x40005528))
 #define GPIO_PORTB_PCTL_R       (*((volatile unsigned long *)0x4000552C))
 
-// Function Prototype
 void GPIO_Init(void);
 
-#endif  // GPIO_H
+#endif 

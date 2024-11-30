@@ -14,41 +14,41 @@ static void LCD_SendNibble(unsigned char nibble, unsigned char isData);
 static void LCD_SendByte(unsigned char byte, unsigned char isData);
 
 void LCD_Init(void) {
-    // Step 1: Allow LCD power stabilization (>15ms after VDD rises to 4.5V)
+    // Allow LCD power to stablise
     delay_ms(20);
 
     // Ensure control lines are low
     GPIO_PORTA_DATA_R &= ~(LCD_RS | LCD_EN);
 
-    // Step 2: Initialize LCD in 8-bit mode with three function set commands
+    // Initialise LCD in 8-bit mode (due to hardware defaults) with three function set commands
     LCD_SendNibble(0x03, 0);
-    delay_ms(5);  // Wait for command processing (>4.1ms)
+    delay_ms(5);  // Wait for command processing (>4.1ms) from datasheet
     LCD_SendNibble(0x03, 0);
-    delay_ms(1);  // Wait >100µs
+    delay_us(100);  // Wait >100µs
     LCD_SendNibble(0x03, 0);
     delay_ms(1);
 
-    // Step 3: Switch to 4-bit mode
+    // Switch to 4-bit mode
     LCD_SendNibble(0x02, 0);
     delay_ms(1);
 
-    // Step 4: Configure LCD for 2-line display and 5x8 character font
+    //Configure LCD for 2-line display and 5x8 character font
     LCD_Command(0x28);  // Function set: 4-bit mode, 2 lines, 5x8 dots
     delay_ms(1);
 
-    // Step 5: Turn off the display while configuring
+    //Turn off the display while configuring
     LCD_Command(0x08);  // Display off, cursor off, blink off
     delay_ms(1);
 
-    // Step 6: Clear the display
+    //Clear the display
     LCD_Command(0x01);  // Clear display command
-    delay_ms(2);        // Delay >1.52ms for clear command
+    delay_ms(2);        // Delay >1.52ms (from datasheet) for clear command
 
-    // Step 7: Set entry mode to increment cursor, no shift
+    //Set entry mode to increment cursor, no shift
     LCD_Command(0x06);  // Entry mode set: Increment, no shift
     delay_ms(1);
 
-    // Step 8: Turn on the display with cursor off
+    // Turn on the display with cursor off
     LCD_Command(0x0C);  // Display on, cursor off, blink off
     delay_ms(1);
 }
