@@ -14,38 +14,38 @@ static void LCD_SendNibble(unsigned char nibble, unsigned char isData);
 static void LCD_SendByte(unsigned char byte, unsigned char isData);
 
 void LCD_Init(void) {
-    // Allow LCD power to stablise
+    // Allow LCD power to stabilise
     delay_ms(20);
 
     // Ensure control lines are low
     GPIO_PORTA_DATA_R &= ~(LCD_RS | LCD_EN);
 
-    // Initialise LCD in 8-bit mode (due to hardware defaults) with three function set commands
+    // Initialise LCD in 8-bit mode (hardware default on boot) with three function set commands
     LCD_SendNibble(0x03, 0);
-    delay_ms(5);  // Wait for command processing (>4.1ms) from datasheet
+    delay_ms(1);  
     LCD_SendNibble(0x03, 0);
-    delay_us(100);  // Wait >100µs
+    delay_ms(1);  
     LCD_SendNibble(0x03, 0);
     delay_ms(1);
 
-    // Switch to 4-bit mode
+    // Step 3: Switch to 4-bit mode
     LCD_SendNibble(0x02, 0);
     delay_ms(1);
 
-    //Configure LCD for 2-line display and 5x8 character font
+    // Configure LCD for 2-line display and 5x8 character font
     LCD_Command(0x28);  // Function set: 4-bit mode, 2 lines, 5x8 dots
     delay_ms(1);
 
-    //Turn off the display while configuring
+    // Turn off the display while configuring
     LCD_Command(0x08);  // Display off, cursor off, blink off
     delay_ms(1);
 
-    //Clear the display
+    // Clear the display
     LCD_Command(0x01);  // Clear display command
-    delay_ms(2);        // Delay >1.52ms (from datasheet) for clear command
+    delay_ms(2);        // Longer delay for clear command
 
-    //Set entry mode to increment cursor, no shift
-    LCD_Command(0x06);  // Entry mode set: Increment, no shift
+    // Set entry mode to increment cursor, no shift
+    LCD_Command(0x06); 
     delay_ms(1);
 
     // Turn on the display with cursor off
@@ -102,7 +102,7 @@ static void LCD_SendByte(unsigned char byte, unsigned char isData) {
     if (byte == 0x01 || byte == 0x02) {
         delay_ms(2);  // Clear or home commands require >1.52ms
     } else {
-        delay_us(50);  // Other commands require >37µs
+        delay_us(50);  // Other commands require >37ï¿½s
     }
 }
 
@@ -129,6 +129,6 @@ static void LCD_SendNibble(unsigned char nibble, unsigned char isData) {
     // Small delay for hold time
     delay_us(1);
 
-    // Additional delay for processing (>37µs)
+    // Additional delay for processing (>37us)
     delay_us(37);
 }
