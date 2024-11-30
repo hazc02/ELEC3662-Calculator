@@ -1,5 +1,3 @@
-// clock.c
-
 #include "clock.h"
 
 void SysTick_init(void) {
@@ -53,6 +51,7 @@ void SysTick_wait(unsigned long delay) {
     while ((NVIC_ST_CTRL_R & 0x00010000) == 0) {}
 }
 
+// ms Delay Function
 void delay_ms(unsigned long delay) {
     unsigned long i;
     for (i = 0; i < delay; i++) {
@@ -60,9 +59,10 @@ void delay_ms(unsigned long delay) {
     }
 }
 
+// us Delay Function
 void delay_us(unsigned long delay) {
     unsigned long i;
     for (i = 0; i < delay; i++) {
-        SysTick_wait(80); // 1 µs delay at 80 MHz
+        SysTick_wait(80); // 1 us delay at 80 MHz
     }
 }
