@@ -1,8 +1,11 @@
 #include "clock.h"
 #include "gpio.h"
 #include "lcd.h"
+#include "keypad.h"
 
 int main(void) {
+    char key;
+
     // Initialise system clock to 80 MHz
     PLL_init();
 
@@ -15,13 +18,20 @@ int main(void) {
     // Initialise LCD
     LCD_Init();
 
+    // Initialise Keypad
+    Keypad_Init();
+
     // Clear LCD and display test message
     LCD_Clear();
-    LCD_String("Hello, World!");
+    LCD_String("Press a key:");
 
     while (1) {
+        key = Keypad_GetKey();
+        if (key != '\0') {
+            LCD_Clear();
+            LCD_String("Key Pressed: ");
+            LCD_Data(key);
+        }
     }
-
     return 0;
 }
-
