@@ -411,9 +411,9 @@
               <FilePath>.\keypad.c</FilePath>
             </File>
             <File>
-              <FileName>keypad.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\include\keypad.h</FilePath>
+              <FileName>calc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\calc.c</FilePath>
             </File>
           </Files>
         </Group>
