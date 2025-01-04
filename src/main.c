@@ -18,9 +18,6 @@ int main(void) {
     // Initialise LCD
     LCD_Init();
 
-    // Initialise Keypad
-    Keypad_Init();
-
     // Clear LCD and display test message
     LCD_Clear();
     LCD_String("Press a key:");
