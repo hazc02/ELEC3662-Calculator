@@ -1,120 +1,105 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>  // for strlen
+#include <stdio.h>   // for sprintf
 #include "clock.h"
 #include "gpio.h"
 #include "lcd.h"
 #include "keypad.h"
-#include "calc.h"    // Our new Calculator Logic Module
+#include "calc.h"
 
-#include <string.h>  // for memset
-#include <stdio.h>   // for sprintf
+#define LCD_COLUMNS 16
 
 int main(void)
 {
-    // ---- 1) Hardware & Peripheral Initialisations ----
-    PLL_init();       // Set system clock to 80 MHz
-    SysTick_init();   // SysTick timer
-    GPIO_Init();      // Ports for LCD & Keypad
-    LCD_Init();       // Initialise LCD (4-bit mode)
-
-    // ---- 2) Calculator Logic Initialisation ----
+    PLL_init();
+    SysTick_init();
+    GPIO_Init();
+    LCD_Init();
+    Keypad_Init();
     Calc_Init();
 
-    // Show a prompt
     LCD_Clear();
-    LCD_String("Expression:");  
-    // We'll show the typed expression on the first line, 
-    // result or messages on the second line.
 
-    // We'll use this flag to detect if the user has just seen a result:
-    bool calculationDone = false;
+    // If user just did '=', next digit => new expression, next operator => continue from last.
+    bool justEvaluated=false;
 
-    // ---- 3) Main program loop ----
-    while (1)
-    {
-        // Read one keypad key
-        char key = Keypad_GetKey();
-
-        // If no key pressed, continue
-        if (key == '\0') {
+    while(1){
+        char key= Keypad_GetKey();
+        if(key=='\0'){
+            // no press or SHIFT toggling
             continue;
         }
 
-        // If the user presses ANY digit/operator after a calculation,
-        // we automatically reset the calculator to start a new expression.
-        if (calculationDone) {
-            // If not 'C' or '='
-            // (If user presses '=' again, we might ignore or handle differently)
-            if (key != 'C' && key != '=') {
-                // Clear expression for new calculation
+        // If we just evaluated, handle new key
+        if(justEvaluated){
+            // if digit/trig => new expression
+            if( (key>='0' && key<='9') || key=='.' || key=='s' ||key=='c'||key=='t') {
                 Calc_ClearExpression();
                 LCD_Clear();
-                LCD_String("Expression:");
             }
-            // Mark that we are no longer in the "done" state
-            calculationDone = false;
+            justEvaluated=false;
         }
 
-        // Now handle possible keys:
-        switch (key) {
-        case 'C':
-            // Clear everything
+        // 'C' => clear
+        if(key=='C'){
             Calc_ClearExpression();
             LCD_Clear();
-            LCD_String("Expression:");
-            break;
+            continue;
+        }
 
-        case '=':
-        {
-            // Evaluate current expression
-            long result = Calc_Evaluate();
+        // '=' => evaluate
+        if(key=='='){
+            double answer= Calc_Evaluate();
 
-            // Clear the second line for the result or error
+            // Clear row=1
             LCD_SetCursor(1,0);
-            LCD_String("                "); // blank out second line
+            for(int i=0;i<LCD_COLUMNS;i++){
+                LCD_Data(' ');
+            }
             LCD_SetCursor(1,0);
 
-            if (Calc_HadError()) {
-                // Indicate an error
+            if(Calc_HadError()){
                 LCD_String("Error!");
-            } else {
-                // Display result
-                char buf[16];
-                sprintf(buf, "Result=%ld", result);
-                LCD_String(buf);
             }
+            else{
+                // Format up to 3 decimals
+                char outBuf[32];
+                sprintf(outBuf,"%.3f", answer);
+                // strip trailing zeros
+                int length= (int)strlen(outBuf);
+                while(length>0 && outBuf[length-1]=='0'){
+                    length--;
+                    outBuf[length]='\0';
+                }
+                if(length>0 && outBuf[length-1]=='.'){
+                    length--;
+                    outBuf[length]='\0';
+                }
 
-            // After showing the result, set calculationDone = true
-            // so that if the user types a new digit/operator,
-            // we reset for a new expression.
-            calculationDone = true;
-            break;
+                LCD_String(outBuf);
+            }
+            justEvaluated=true;
+            continue;
         }
 
-        default:
-        {
-            // It's likely a digit or +, -, *, /
-            // Attempt to add it to the calc buffer
-            if (Calc_AddChar(key) < 0) {
-                // Buffer full or error
-                LCD_SetCursor(1,0);
-                LCD_String("Buffer Full!");
-            } else {
-                // Successfully added character -> refresh LCD line 0 
-                // to show the entire expression
-                const char* expr = Calc_GetExpression();
-
-                // Clear line 0 before rewriting
-                LCD_SetCursor(0,0);
-                LCD_String("                "); // 16 spaces for a 16x2 display
-                LCD_SetCursor(0,0);
-                LCD_String(expr);
-            }
-            break;
+        // Attempt to add key to expression
+        if(Calc_AddChar(key)<0){
+            // buffer full => reset
+            Calc_ClearExpression();
+            LCD_Clear();
+            continue;
         }
-        } // end switch
+
+        // Display expression on row=1
+        const char* expr= Calc_GetExpression();
+        LCD_SetCursor(1,0);
+        for(int i=0;i<LCD_COLUMNS;i++){
+            LCD_Data(' ');
+        }
+        LCD_SetCursor(1,0);
+        LCD_String(expr);
     }
 
-    // Should never reach here
     return 0;
 }
