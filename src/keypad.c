@@ -1,57 +1,61 @@
 #include "keypad.h"
 #include "gpio.h"
 #include "clock.h"
+#include <stdbool.h>
 
-// Keypad mapping
-static const char keymap[4][4] = {
-    {'1', '2', '3', '+'},
-    {'4', '5', '6', '-'},
-    {'7', '8', '9', '*'},
-    {'S', '0', '=', '/'}
+static bool shiftState = false;
+
+static const char normalMap[4][4] = {
+    {'1','2','3','+'},
+    {'4','5','6','-'},
+    {'7','8','9','*'},
+    {'S','0','.', '='}
 };
 
-// Definitions for keypad pins
-#define KEYPAD_COL_PORT GPIO_PORTD_DATA_R
-#define KEYPAD_ROW_PORT GPIO_PORTE_DATA_R
+static const char shiftedMap[4][4] = {
+    {'^','?','?','/'},
+    {'s','c','t','C'},
+    {'?','?','?','?'},
+    {'S','?','?','?'}
+};
 
-char Keypad_GetKey(void) {
+void Keypad_Init(void)
+{
+    // If already configured in GPIO_Init, do nothing here.
+}
+
+char Keypad_GetKey(void)
+{
     unsigned char col, row;
+    char c = '\0';
 
-    // Iterate through each column
-    for (col = 0; col < 4; col++) {
-        // Set all columns high
-        KEYPAD_COL_PORT |= KEYPAD_COL_MASK;
+    for(col=0; col<4; col++){
+        // Drive all columns high
+        GPIO_PORTD_DATA_R |= KEYPAD_COL_MASK;
+        // Pull this column low
+        GPIO_PORTD_DATA_R &= ~(1<<col);
 
-        // Pull the current column low
-        KEYPAD_COL_PORT &= ~(1 << col);
-
-        // Small delay to allow signals to settle
         delay_us(2);
 
-        // Read all rows
-        unsigned char row_data = KEYPAD_ROW_PORT & KEYPAD_ROW_MASK;
-
-        // Check each row to see if a key is pressed  
-        for (row = 0; row < 4; row++) {
-            if (!(row_data & (1 << row))) { // Active low due to pull-up resistors
-
-                 // Debounce delay
+        unsigned char rowData= GPIO_PORTE_DATA_R & KEYPAD_ROW_MASK;
+        for(row=0; row<4; row++){
+            if(!(rowData & (1<<row))){
+                // Debounce
                 delay_ms(20);
+                rowData= GPIO_PORTE_DATA_R & KEYPAD_ROW_MASK;
+                if(!(rowData & (1<<row))){
+                    // Wait release
+                    while(!(GPIO_PORTE_DATA_R & (1<<row))){ }
 
-                // Confirm the key is still pressed
-                row_data = KEYPAD_ROW_PORT & KEYPAD_ROW_MASK;
-                if (!(row_data & (1 << row))) {
-
-                    // Wait until the key is released
-                    while (!(KEYPAD_ROW_PORT & (1 << row)));
-
-                    // Return the corresponding character
-                    return keymap[row][col];
+                    c= shiftState ? shiftedMap[row][col] : normalMap[row][col];
+                    if(c=='S'){
+                        shiftState= !shiftState;
+                        return '\0';
+                    }
+                    return c;
                 }
             }
         }
     }
-
-    // No key pressed
     return '\0';
 }
