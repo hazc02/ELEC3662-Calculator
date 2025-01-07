@@ -6,16 +6,12 @@
 #include <ctype.h>    // isdigit
 #include <stdio.h>    // sprintf, etc.
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#define MAX_EXPR_LEN 64
 
 /**
- * @brief Holds the user-typed expression, e.g. "sin30+2^3"
+ * @brief Holds the user-typed expression"
  */
 static char expressionBuffer[MAX_EXPR_LEN];
+
 static int  exprIndex = 0;
 static bool errorFlag = false;
 
@@ -45,7 +41,8 @@ void Calc_Init(void)
 }
 
 /**
- * @brief Expand 's','c','t' => "sin","cos","tan". If '?' => ignore. Otherwise store char. 
+ * @brief Function to insert into the expression buffer
+ *        Expand 's','c','t' => "sin","cos","tan". If '?' => ignore. Otherwise store char. 
  *        Return -1 if near full. Return 0 if success.
  */
 int Calc_AddChar(char inputChar)
@@ -55,7 +52,7 @@ int Calc_AddChar(char inputChar)
         return 0;
     }
 
-    // Check if adding three characters (sin, cos, tan) would exceed buffer
+    // Check if adding three characters would exceed buffer
     if(exprIndex >= (MAX_EXPR_LEN - 4)) {
         return -1; // No space
     }
@@ -88,7 +85,6 @@ int Calc_AddChar(char inputChar)
 
     return 0;
 }
-
 
 /**
  * @brief Clears expression
