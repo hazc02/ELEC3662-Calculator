@@ -50,41 +50,45 @@ void Calc_Init(void)
  */
 int Calc_AddChar(char inputChar)
 {
-    if(inputChar=='?'){
-        // ignore placeholders
+    if(inputChar == '?') {
+        // Ignore placeholders
         return 0;
     }
 
-    // We might need 3 more chars if user typed 's' => "sin"
-    if(exprIndex >= (MAX_EXPR_LEN - 4)){
-        // no space
-        return -1;
+    // Check if adding three characters (sin, cos, tan) would exceed buffer
+    if(exprIndex >= (MAX_EXPR_LEN - 4)) {
+        return -1; // No space
     }
 
-    if(inputChar=='s'){
-        strcpy(&expressionBuffer[exprIndex], "sin");
-        exprIndex+=3;
-        expressionBuffer[exprIndex] = '\0';
-        return 0;
+    // Expand 's' to "sin", 'c' to "cos", 't' to "tan"
+    const char *expansion = NULL;
+    
+    if(inputChar == 's') {
+        expansion = "sin";
+    } 
+    else if(inputChar == 'c') {
+        expansion = "cos";
+    } 
+    else if(inputChar == 't') {
+        expansion = "tan";
     }
-    if(inputChar=='c'){
-        strcpy(&expressionBuffer[exprIndex], "cos");
-        exprIndex+=3;
-        expressionBuffer[exprIndex] = '\0';
-        return 0;
-    }
-    if(inputChar=='t'){
-        strcpy(&expressionBuffer[exprIndex], "tan");
-        exprIndex+=3;
-        expressionBuffer[exprIndex] = '\0';
+
+    if(expansion) {
+        // Append each character of the expansion
+        for(int i = 0; expansion[i] != '\0'; i++) {
+            expressionBuffer[exprIndex++] = expansion[i];
+        }
+        expressionBuffer[exprIndex] = '\0'; // Null-terminate the string
         return 0;
     }
 
-    // Normal char
+    // For normal characters, add to buffer directly
     expressionBuffer[exprIndex++] = inputChar;
-    expressionBuffer[exprIndex]   = '\0';
+    expressionBuffer[exprIndex] = '\0';
+
     return 0;
 }
+
 
 /**
  * @brief Clears expression

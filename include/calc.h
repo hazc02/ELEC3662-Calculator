@@ -30,4 +30,7 @@ int    Calc_HadError(void);
 /// Returns pointer to the expression buffer (for LCD)
 const char* Calc_GetExpression(void);
 
+#define M_PI 3.14159265358979323846
+#define MAX_EXPR_LEN 64
+
 #endif // CALC_H
