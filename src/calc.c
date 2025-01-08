@@ -87,7 +87,7 @@ int Calc_AddChar(char inputChar)
 }
 
 /**
- * @brief Clears expression
+ * @brief Clears buffer
  */
 void Calc_ClearExpression(void)
 {
@@ -96,31 +96,48 @@ void Calc_ClearExpression(void)
     errorFlag=false;
 }
 
+static double parseAndEvaluate(void);
+
 /**
  * @brief Evaluate the expression. 
  *        If empty => return last result (or 0)
  *        If first char is operator & we have lastResult => prepend lastResult
  */
-static double parseAndEvaluate(void);
+
 double Calc_Evaluate(void)
 {
     errorFlag=false;
 
     if(exprIndex==0){
         // no typed expression
-        return hasLastResult? lastResult:0.0;
+        return hasLastResult ? lastResult : 0.0;
     }
 
-    // if first char is operator => prepend lastResult if we have one
+    // If the first character is an operator, then use the previous answer at the start of the expression
     {
-        char c= expressionBuffer[0];
-        if((c=='+'|| c=='-'|| c=='*'|| c=='/'|| c=='^') && hasLastResult){
-            char temp[128];
-            sprintf(temp,"%.6f%c%s", lastResult, c, &expressionBuffer[1]);
-            strncpy(expressionBuffer, temp, sizeof(expressionBuffer));
-            exprIndex= (int)strlen(expressionBuffer);
-        }
+    char c = expressionBuffer[0];  // Get the first character of the expression
+
+    // Check if the first character is an operator and if we have a previous result
+    if ((c == '+' || c == '-' || c == '*' || c == '/' || c == '^') && hasLastResult) {
+        
+        char temp[128];  // Temporary buffer to construct the new expression
+        
+        // Create a new expression by appending the last result, the operator, and the rest of the expression
+        sprintf(temp, "%.6f", lastResult);  // Convert lastResult to a string with 6 decimal places
+        temp[strlen(temp)] = c;             // Append the operator
+        temp[strlen(temp) + 1] = '\0';      // Null-terminate after the operator
+
+        // Append the rest of the expression, skipping the first character (the operator)
+        strcat(temp, &expressionBuffer[1]); 
+
+        // Copy the new expression back to the main buffer
+        strncpy(expressionBuffer, temp, sizeof(expressionBuffer) - 1);
+        expressionBuffer[sizeof(expressionBuffer) - 1] = '\0';  // Ensure null termination
+
+        // Update the expression index to reflect the new length
+        exprIndex = (int)strlen(expressionBuffer);
     }
+}
 
     double val= parseAndEvaluate();
     if(!errorFlag){
@@ -143,7 +160,7 @@ const char* Calc_GetExpression(void)
 
 //////////////////// Implementation Part ////////////////////
 
-/// We'll parse the expression as tokens, then do multi-pass for ^, * /, + -.
+/// The expression buffer is parsed as tokens, multiple passes are completed to handle BODMAS for ^, * /, + -.
 
 typedef enum {
     TOKEN_NUMBER,
@@ -161,16 +178,16 @@ typedef struct {
 static CalcToken tokens[32];
 static int       tokenCount=0;
 
-static int tokenizeExpression(void);
+static int tokeniseExpression(void);
 static double processTokens(void);
 
 /**
- * @brief parseAndEvaluate => tokenize, process => final
+ * @brief parseAndEvaluate => tokenise, process => final
  */
 static double parseAndEvaluate(void)
 {
     tokenCount=0;
-    if(tokenizeExpression()<0){
+    if(tokeniseExpression()<0){
         errorFlag=true;
         return 0.0;
     }
@@ -183,7 +200,7 @@ static double parseAndEvaluate(void)
  */
 static double evaluateTrig(const char* trigStr)
 {
-    // e.g. "sin30.5"
+    
     char func[4];
     strncpy(func, trigStr,3);
     func[3]='\0';
@@ -199,180 +216,138 @@ static double evaluateTrig(const char* trigStr)
 }
 
 /**
- * @brief Tokenise the expressionBuffer => fill tokens
+ * @brief Tokenise the expressionBuffer and populate the tokens array
  */
-static int tokenizeExpression(void)
+static int tokeniseExpression(void)
 {
-    const char* p= expressionBuffer;
-    tokenCount=0;
+    const char *currentChar = expressionBuffer;
+    tokenCount = 0;
 
-    while(*p!='\0'){
-        // skip spaces
-        while(isspace((unsigned char)*p)) p++;
-        if(*p=='\0') break;
+    while (*currentChar != '\0') {
 
-        // bracket => error
-        if(*p=='(' || *p==')'){
-            errorFlag=true;
+        // Handle operator (+, -, *, /, ^)
+        if (strchr("+-*/^", *currentChar)) {
+            tokens[tokenCount].type = TOKEN_OPERATOR;
+            tokens[tokenCount].opChar = *currentChar;
+            tokenCount++;
+            currentChar++;
+        }
+        // Handle trigonometric functions (sin, cos, tan)
+        else if (strncmp(currentChar, "sin", 3) == 0 || 
+                 strncmp(currentChar, "cos", 3) == 0 || 
+                 strncmp(currentChar, "tan", 3) == 0) {
+
+            char trigBuffer[16] = {0};  // Buffer for trigonometric function
+            int i = 0;
+
+            while (*currentChar && !isspace((unsigned char)*currentChar) && 
+                   !strchr("+-*/^", *currentChar) && i < sizeof(trigBuffer) - 1) {
+                trigBuffer[i++] = *currentChar++;
+            }
+            trigBuffer[i] = '\0';
+
+            tokens[tokenCount].type = TOKEN_TRIG;
+            strncpy(tokens[tokenCount].trigString, trigBuffer, sizeof(tokens[tokenCount].trigString) - 1);
+            tokenCount++;
+        }
+        // Handle numbers (including decimals and negatives)
+        else if (isdigit((unsigned char)*currentChar) || *currentChar == '.' || 
+                (*currentChar == '-' && isdigit((unsigned char)*(currentChar + 1)))) {
+
+            char numBuffer[32] = {0};  // Buffer for numbers
+            int j = 0;
+
+            if (*currentChar == '-') {
+                numBuffer[j++] = *currentChar++;
+            }
+
+            while (*currentChar && !isspace((unsigned char)*currentChar) && 
+                   !strchr("+-*/^", *currentChar) && j < sizeof(numBuffer) - 1) {
+                numBuffer[j++] = *currentChar++;
+            }
+            numBuffer[j] = '\0';
+
+            tokens[tokenCount].type = TOKEN_NUMBER;
+            tokens[tokenCount].numberVal = atof(numBuffer);
+            tokenCount++;
+        }
+        // Handle unrecognised characters
+        else {
+            errorFlag = true;
             return -1;
         }
-
-        // operator?
-        if(strchr("+-*/^", *p)!=NULL){
-            tokens[tokenCount].type= TOKEN_OPERATOR;
-            tokens[tokenCount].opChar= *p;
-            tokenCount++;
-            p++;
-            continue;
-        }
-
-        // trig? "sin","cos","tan"
-        if(strncmp(p,"sin",3)==0 || strncmp(p,"cos",3)==0 || strncmp(p,"tan",3)==0){
-            // read up to next operator or space
-            char trigBuf[16];
-            int tIndex=0;
-            while(*p && !isspace((unsigned char)*p) && !strchr("+-*/^", *p)){
-                if(tIndex<15) trigBuf[tIndex++]=*p;
-                p++;
-            }
-            trigBuf[tIndex]='\0';
-
-            tokens[tokenCount].type= TOKEN_TRIG;
-            strncpy(tokens[tokenCount].trigString, trigBuf, 15);
-            tokens[tokenCount].trigString[15]='\0';
-            tokenCount++;
-            continue;
-        }
-
-        // number => digits + decimal + optional leading '-'
-        if(isdigit((unsigned char)*p) || *p=='.' || (*p=='-' && isdigit((unsigned char)*(p+1)))){
-            char numBuf[32];
-            int n=0;
-            // if leading '-'
-            if(*p=='-'){
-                numBuf[n++]= *p;
-                p++;
-            }
-            while(*p && !isspace((unsigned char)*p) && !strchr("+-*/^", *p)){
-                if(n<31) numBuf[n++]=*p;
-                p++;
-            }
-            numBuf[n]='\0';
-
-            tokens[tokenCount].type= TOKEN_NUMBER;
-            tokens[tokenCount].numberVal= atof(numBuf);
-            tokenCount++;
-            continue;
-        }
-
-        // unknown => error
-        errorFlag=true;
-        return -1;
     }
 
-    return 0; // success
+    return 0;  // Successful tokenisation
 }
 
 /**
- * @brief multi-pass: first interpret trig => number, then do exponent pass, then * /, then + -.
+ * @brief Multi-pass token processing
  */
 static double processTokens(void)
 {
-    // interpret trig
-    for(int i=0;i<tokenCount;i++){
-        if(tokens[i].type== TOKEN_TRIG){
-            double val= evaluateTrig(tokens[i].trigString);
-            tokens[i].type= TOKEN_NUMBER;
-            tokens[i].numberVal= val;
+    // Evaluate trigonometric functions and replace them with numerical values
+    for (int i = 0; i < tokenCount; i++) {
+        if (tokens[i].type == TOKEN_TRIG) {
+            tokens[i].numberVal = evaluateTrig(tokens[i].trigString);
+            tokens[i].type = TOKEN_NUMBER;
         }
     }
 
     double numbers[32];
-    char   operators[32];
-    int numCount=0, opCount=0;
+    char operators[32];
+    int numCount = 0, opCount = 0;
 
-    for(int i=0;i<tokenCount;i++){
-        if(tokens[i].type==TOKEN_NUMBER){
-            numbers[numCount++]= tokens[i].numberVal;
-        }
-        else if(tokens[i].type==TOKEN_OPERATOR){
-            operators[opCount++]= tokens[i].opChar;
-        }
-        else {
-            errorFlag=true;
+    // Separate tokens into numbers and operators
+    for (int i = 0; i < tokenCount; i++) {
+        if (tokens[i].type == TOKEN_NUMBER) {
+            numbers[numCount++] = tokens[i].numberVal;
+        } else if (tokens[i].type == TOKEN_OPERATOR) {
+            operators[opCount++] = tokens[i].opChar;
+        } else {
+            errorFlag = true;
             return 0.0;
         }
     }
 
-    // pass1 => '^'
-    for(int i=0;i<opCount; ){
-        if(operators[i]=='^'){
-            if(i>= numCount-1){ errorFlag=true; break;}
-            double lhs= numbers[i];
-            double rhs= numbers[i+1];
-            double r= pow(lhs,rhs);
-            numbers[i]= r;
-            // shift left
-            for(int j=i+1;j<numCount-1;j++){
-                numbers[j]=numbers[j+1];
+    // Process operations based on precedence
+    char precedence[] = {'^', '*', '/', '+', '-'};
+    for (int p = 0; p < sizeof(precedence); p++) {
+        for (int i = 0; i < opCount; ) {
+            if (operators[i] == precedence[p]) {
+                if (i >= numCount - 1) {
+                    errorFlag = true;
+                    return 0.0;
+                }
+                double result = (operators[i] == '^') ? pow(numbers[i], numbers[i + 1]) :
+                                (operators[i] == '*') ? numbers[i] * numbers[i + 1] :
+                                (operators[i] == '/') ? (numbers[i + 1] != 0 ? numbers[i] / numbers[i + 1] : (errorFlag = true, 0.0)) :
+                                (operators[i] == '+') ? numbers[i] + numbers[i + 1] :
+                                                        numbers[i] - numbers[i + 1];
+
+                if (errorFlag) return 0.0;
+                
+                numbers[i] = result;
+
+                // Shift arrays to remove processed operator and number
+                for (int j = i + 1; j < numCount - 1; j++) {
+                    numbers[j] = numbers[j + 1];
+                }
+                for (int j = i; j < opCount - 1; j++) {
+                    operators[j] = operators[j + 1];
+                }
+                numCount--;
+                opCount--;
+            } else {
+                i++;
             }
-            for(int j=i;j<opCount-1;j++){
-                operators[j]=operators[j+1];
-            }
-            numCount--;
-            opCount--;
         }
-        else i++;
     }
 
-    // pass2 => * /
-    for(int i=0;i<opCount; ){
-        if(operators[i]=='*' || operators[i]=='/'){
-            if(i>= numCount-1){ errorFlag=true; break;}
-            double lhs= numbers[i];
-            double rhs= numbers[i+1];
-            double r=0.0;
-            if(operators[i]=='*') r= lhs*rhs;
-            else {
-                if(rhs==0.0){errorFlag=true; break;}
-                r= lhs/rhs;
-            }
-            numbers[i]= r;
-            for(int j=i+1;j<numCount-1;j++){
-                numbers[j]=numbers[j+1];
-            }
-            for(int j=i;j<opCount-1;j++){
-                operators[j]=operators[j+1];
-            }
-            numCount--;
-            opCount--;
-        }
-        else i++;
-    }
-
-    // pass3 => + -
-    for(int i=0;i<opCount; ){
-        if(operators[i]=='+'|| operators[i]=='-'){
-            if(i>= numCount-1){errorFlag=true; break;}
-            double lhs= numbers[i];
-            double rhs= numbers[i+1];
-            double r= (operators[i]=='+')?(lhs+rhs):(lhs-rhs);
-            numbers[i]= r;
-            for(int j=i+1;j<numCount-1;j++){
-                numbers[j]= numbers[j+1];
-            }
-            for(int j=i;j<opCount-1;j++){
-                operators[j]=operators[j+1];
-            }
-            numCount--;
-            opCount--;
-        }
-        else i++;
-    }
-
-    if(errorFlag || numCount!=1){
-        errorFlag=true;
+    if (numCount != 1) {
+        errorFlag = true;
         return 0.0;
     }
     return numbers[0];
 }
+
